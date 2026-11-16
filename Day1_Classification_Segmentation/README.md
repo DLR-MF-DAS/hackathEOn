@@ -25,3 +25,13 @@ You should see something like `Python 3.6.9`. This tutorial was tested on `pytho
 7. Check that everything is ready by running `python check.py`. If the required packages are installed and the data is in place, you will get an `OK`.
 
 8. Start jupyter with the command `jupyter-lab`.
+
+
+
+-- OR --
+
+1. Make sure you are in the `Day1_Classification_Segmentation` folder.
+
+2. Install the dependencies using uv `uv sync --locked`
+
+3. Start jupyter running `uv run jupyter notebook`

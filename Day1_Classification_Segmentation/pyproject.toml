@@ -1,0 +1,18 @@
+[project]
+name = "day1-classification-segmentation"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "h5py==3.12.1",
+    "jupyter>=1.1.1",
+    "matplotlib==3.9.2",
+    "matplotlib-inline==0.1.7",
+    "numpy==2.2.6",
+    "pandas==2.3.3",
+    "scikit-learn==1.5.2",
+    "scipy==1.14.1",
+    "torch==2.9.1",
+    "torchinfo==1.8.0",
+    "torchsde==0.2.6",
+    "torchvision==0.24.1",
+]
