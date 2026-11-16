@@ -1,0 +1,139 @@
+Bug report: MC Dropout leaves BatchNorm layers in training mode during prediction
+===============================================================================
+
+Package:   lightning-uq-box
+Versions:  0.4.0 (PyPI) and current main (checked 2026-11-14, commit of 2026-11-03)
+File:      lightning_uq_box/uq_methods/mc_dropout.py, MCDropoutBase.activate_dropout()
+Affects:   MCDropoutRegression, MCDropoutClassification, MCDropoutSegmentation,
+           MCDropoutPxRegression (all call activate_dropout() in predict_step(),
+           which is also used by test_step())
+
+
+Summary
+-------
+activate_dropout() first calls self.model.train() and is then meant to switch the
+BatchNorm layers back to eval mode. That branch can never run, so every
+BatchNorm layer stays in training mode during MC prediction. As a result:
+
+1. BatchNorm normalises with the statistics of the current prediction batch
+   instead of the running statistics learned during training.
+2. Every forward pass overwrites the running statistics (running_mean,
+   running_var) with the statistics of the test/prediction data.
+3. The model stays in training mode after predict_step(). Every later use of
+   the network (another method that reuses the weights, a checkpoint saved
+   afterwards, plain model(x) calls) works with the corrupted statistics.
+
+A second, smaller problem: because of the initial self.model.train(), all
+dropout layers are active, not only those listed in dropout_layer_names.
+
+
+The code
+--------
+    def activate_dropout(self) -> None:
+        dropout_layers_found = []
+        self.model.train()                       # (a) everything to train mode
+
+        def activate_dropout_recursive(model, prefix=""):
+            for name, module in model.named_children():
+                full_name = f"{prefix}.{name}" if prefix else name
+                if full_name in self.dropout_layer_names and isinstance(module, nn.Dropout):
+                    module.train()
+                    dropout_layers_found.append(full_name)
+                elif isinstance(module, nn.Module):          # (b) true for EVERY module
+                    activate_dropout_recursive(module, full_name)
+                elif isinstance(module, nn.BatchNorm1d | nn.BatchNorm2d | nn.BatchNorm3d):
+                    module.eval()                            # (c) never reached
+
+(b) catches every module, including BatchNorm, so (c) is dead code.
+Because of (a), BatchNorm (and every dropout layer) remains in train mode.
+
+
+Minimal reproduction (repro_mc_dropout_batchnorm.py)
+---------------------------------------------------
+    net = nn.Sequential(nn.Conv2d(3, 8, 3, padding=1), nn.BatchNorm2d(8), nn.ReLU(),
+                        nn.AdaptiveAvgPool2d(1), nn.Flatten(), nn.Dropout(0.2), nn.Linear(8, 4))
+    model = MCDropoutClassification(net, num_mc_samples=10, loss_fn=nn.CrossEntropyLoss(),
+                                    dropout_layer_names=["5"])
+    model.eval()
+    model.predict_step(torch.randn(64, 3, 16, 16) * 5 + 3)
+
+Output with 0.4.0:
+    BatchNorm in training mode after predict_step: True
+    running_mean changed by predict_step:           True
+    max |change| of running_mean:                   0.87
+    dropout '1' active although only '3' was listed: True
+
+Output with the fix below:
+    BatchNorm in training mode after predict_step: False
+    running_mean changed by predict_step:           False
+    max |change| of running_mean:                   0.0
+    dropout '1' active although only '3' was listed: False
+
+
+Observed effect in practice
+---------------------------
+EuroSAT (RGB, 64x64) with a small CNN with BatchNorm, MCDropoutClassification,
+num_mc_samples=20. (These numbers come from synthetic test data with the same
+shapes; the effect is the same on real data.)
+
+  * The MC predictions on a batch of cloudy test images were normalised with
+    the statistics of that cloudy batch (test-time adaptation by accident):
+    accuracy 89.0% with the bug vs. 21.8% with BatchNorm in eval mode.
+    The method looks much more robust than it is.
+  * After predict_step() on the test sets, the same weights were reused for
+    TempScaling/RAPS. Because the running statistics had been overwritten, the
+    plain network's ECE was 0.606 instead of 0.018 and the fitted temperature
+    was 1.92 instead of 1.26. RAPS produced prediction sets with 7-10 classes.
+
+The results depend on the batch composition (batch size, class mix, shift),
+so predictions are also not reproducible across batch sizes.
+
+
+Proposed fix
+------------
+    def activate_dropout(self) -> None:
+        """Activate only the selected dropout layers, keep everything else in eval mode."""
+        self.model.eval()
+        dropout_layers_found = []
+        for name, module in self.model.named_modules():
+            if name in self.dropout_layer_names and isinstance(module, nn.modules.dropout._DropoutNd):
+                module.train()
+                dropout_layers_found.append(name)
+        if not dropout_layers_found:
+            raise UserWarning(
+                "No dropout layers found in model, maybe dropout "
+                "is implemented via specialized layers?"
+            )
+
+Notes:
+  * named_modules() gives the same dotted names as the recursive helper, so
+    the helper is no longer needed.
+  * nn.modules.dropout._DropoutNd also covers Dropout1d/2d/3d and AlphaDropout,
+    which `isinstance(module, nn.Dropout)` misses (Dropout2d is not a subclass
+    of nn.Dropout).
+  * Suggested regression test: after predict_step(), assert that no
+    BatchNorm module is in training mode and that running_mean/running_var
+    are unchanged; and that dropout layers not listed in dropout_layer_names
+    are in eval mode.
+  * Optionally restore the previous training state after prediction, e.g.
+    remember `was_training = self.model.training` and call
+    self.model.train(was_training) at the end of predict_step().
+
+
+Workaround for users of 0.4.0
+-----------------------------
+    class MCDropoutClassificationBN(MCDropoutClassification):
+        def activate_dropout(self):
+            super().activate_dropout()
+            for m in self.model.modules():
+                if isinstance(m, nn.modules.batchnorm._BatchNorm):
+                    m.eval()
+
+(Or use a network without BatchNorm, or a method that does not rely on
+activate_dropout.)
+
+
+Files
+-----
+  repro_mc_dropout_batchnorm.py   minimal reproduction (prints the lines above)
+  fix_check.py                    applies the proposed fix and reruns the reproduction

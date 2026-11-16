@@ -1,0 +1,63 @@
+[project]
+name = "day2-uq-and-geofms"
+version = "1.0.0"
+description = "Hands-on notebooks: uncertainty quantification and geo foundation models for remote sensing"
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "torch>=2.2",
+    "torchvision",
+    "numpy",
+    "matplotlib",
+    "scikit-learn",
+    "jupyterlab",
+    "ipykernel",
+    "lightning>=2.2",
+    "lightning-uq-box>=0.4",
+    "satellite_cloud_generator>=0.4",  # realistic synthetic clouds
+    "terratorch>=1.1",   # TerraMind (Session 2)
+    "torchgeo>=0.7",     # downloads the multispectral EuroSAT
+    "rasterio",          # AlphaEarth embeddings (notebook 7)
+    "pandas",
+    "pyarrow",
+    "tqdm",              # progress bars
+    "ipywidgets",        # progress bars of libraries (Lightning, Hugging Face downloads) as one-line widgets
+]
+
+[project.optional-dependencies]
+cpu = ["torch>=2.2", "torchvision"]
+cuda = ["torch>=2.2", "torchvision"]
+
+# ---------------------------------------------------------------------------------------------
+# Which PyTorch build?
+#
+#   uv sync                 PyTorch from PyPI (Linux: CUDA build, Windows: CPU build, macOS: normal build)
+#   uv sync --extra cpu     CPU only: small download (~200 MB instead of several GB on Linux)
+#   uv sync --extra cuda    CUDA 13 build (Linux and Windows; needs `nvidia-smi` to show CUDA Version 13.x)
+#
+# A later plain `uv run ...` goes back to the plain `uv sync` build. With --extra cpu or --extra cuda,
+# use `uv run --no-sync ...` (or repeat the flag, e.g. `uv run --extra cpu jupyter lab`).
+# ---------------------------------------------------------------------------------------------
+[tool.uv]
+package = false          # just notebooks, nothing to build
+conflicts = [[{ extra = "cpu" }, { extra = "cuda" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'darwin'" },
+    { index = "pytorch-cu130", extra = "cuda", marker = "sys_platform != 'darwin'" },
+]
+torchvision = [
+    { index = "pytorch-cpu", extra = "cpu", marker = "sys_platform != 'darwin'" },
+    { index = "pytorch-cu130", extra = "cuda", marker = "sys_platform != 'darwin'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
