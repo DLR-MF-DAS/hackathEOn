@@ -17,7 +17,7 @@ dependencies = [
     "satellite_cloud_generator>=0.4",  # realistic synthetic clouds
     "terratorch>=1.1",   # TerraMind (Session 2)
     "torchgeo>=0.7",     # downloads the multispectral EuroSAT
-    "rasterio",          # AlphaEarth embeddings (notebook 7)
+    "rasterio",          # AlphaEarth embeddings (notebook 6)
     "pandas",
     "pyarrow",
     "tqdm",              # progress bars

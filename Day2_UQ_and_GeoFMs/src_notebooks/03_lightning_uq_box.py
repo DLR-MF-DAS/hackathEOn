@@ -1,9 +1,23 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
+# **Part 1 · Uncertainty Quantification · notebook 3 of 3**
+#
 # # Notebook 3: Lightning UQ Box: UQ methods straight out of the box
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/03_lightning_uq_box.ipynb)
-#
-# **Session 1, part 3**
 #
 # In notebooks 1 and 2 we implemented the methods by hand: training loops, Monte Carlo sampling,
 # the variance decomposition. That shows how a method works.
@@ -106,6 +120,10 @@ QUIET = dict(enable_checkpointing=False, enable_progress_bar=False, enable_model
 # *Sections 'Theory' to 'Evaluate the predictions' follow the Lightning UQ Box tutorial `regression/bnn_vi_elbo.ipynb` (and the HAICON notebook `04_lightning_uq_box.ipynb`), almost 1:1.*
 #
 # ## Theory in short
+#
+# > **In short:** Bayes by Backprop learns a Gaussian for every weight (variational inference) and samples new weights in every forward pass. Principled, but twice the parameters and a more delicate training (prior, $\beta$).
+# >
+# > **Read more:** [Blundell et al. (2015), Weight uncertainty in neural networks](https://arxiv.org/abs/1505.05424)
 #
 # A Bayesian neural network (BNN) learns a **distribution over each weight** instead of one value.
 # With mean-field variational inference (VI) this distribution is a Gaussian $q(\theta)$ with a learned
@@ -225,6 +243,10 @@ fig = plot_calibration_uq_toolbox(
 # ## Swap the method: a Deep Ensemble
 #
 # *Follows the Lightning UQ Box tutorial `regression/deep_ensemble.ipynb`.*
+#
+# > **In short:** Several independently trained networks, combined at prediction time (see notebook 1).
+# >
+# > **Read more:** [Lakshminarayanan et al. (2017), Simple and scalable predictive uncertainty estimation using deep ensembles](https://arxiv.org/abs/1612.01474)
 #
 # Changing the UQ method keeps the data module, the trainer and the plots. Here a Deep Ensemble, as in the official
 # [Deep Ensemble tutorial](https://lightning-uq-box.readthedocs.io/en/latest/tutorials/regression/deep_ensemble.html):
@@ -346,6 +368,10 @@ cnn = det_model.model.eval()  # the plain PyTorch network inside
 #
 # *Follows the Lightning UQ Box tutorial `classification/laplace.ipynb`; the prior-precision tuning uses the Laplace library.*
 #
+# > **In short:** After normal training, a Gaussian around the trained weights whose width comes from the curvature of the loss: sharp minimum, confident; flat minimum, uncertain. Usually only for the last layer, no retraining.
+# >
+# > **Read more:** [Daxberger et al. (2021), Laplace Redux: effortless Bayesian deep learning](https://arxiv.org/abs/2106.14806)
+#
 # The Laplace approximation puts a Gaussian around the trained weights. Its width comes from the
 # curvature of the loss: where the loss is flat, many weights are about as good, so the Gaussian is wide.
 #
@@ -372,6 +398,10 @@ print(f"prior precision: {laplace_model.laplace_model.prior_precision.item():.2f
 #
 # *Follows the Lightning UQ Box tutorial `classification/swag.ipynb`.*
 #
+# > **In short:** Keep training with a fairly large learning rate, collect weight snapshots and fit a Gaussian to them; sample networks from it at test time. No special layers, no change to the original training.
+# >
+# > **Read more:** [Maddox et al. (2019), A simple baseline for Bayesian uncertainty in deep learning](https://arxiv.org/abs/1902.02476)
+#
 # SWAG (official [SWAG tutorial](https://lightning-uq-box.readthedocs.io/en/latest/tutorials/classification/swag.html))
 # continues training the trained network with a small learning rate, keeps snapshots of the weights and fits a
 # Gaussian to them (mean, diagonal and low-rank covariance). At prediction time it samples weights from this Gaussian.
@@ -397,6 +427,10 @@ print(f"SWAG: {swag_model.num_tracked} snapshots")
 #
 # *Follows the Lightning UQ Box tutorial `classification/bnn_vi_elbo.ipynb`.*
 #
+# > **In short:** A Gaussian for every weight of the stochastic layers, learned with variational inference (see part 1 of this notebook).
+# >
+# > **Read more:** [Blundell et al. (2015), Weight uncertainty in neural networks](https://arxiv.org/abs/1505.05424)
+#
 # The Bayesian method from part 1, now for classification. Unlike Laplace and SWAG it needs its own training run.
 # Again only the last layer is stochastic.
 
@@ -414,8 +448,13 @@ bnn_model = train(bnn_model)
 # %% [markdown]
 # ## Temperature scaling
 #
-# Post-hoc: one number $T$ is fitted on the calibration set, the network stays fixed:
-# $p = \mathrm{softmax}(z / T)$. `trainer.fit` only fits $T$.
+# > **In short:** Post-hoc calibration with one fitted number $T$ (see notebook 2).
+# >
+# > **Read more:** [Guo et al. (2017), On calibration of modern neural networks](https://arxiv.org/abs/1706.04599)
+#
+# Post-hoc **calibration**: one number $T$ is fitted on the calibration set, the network stays fixed:
+# $p = \mathrm{softmax}(z / T)$. `trainer.fit` only fits $T$. It rescales the confidence of the trained network;
+# it does not add an uncertainty estimate of its own (as in notebook 2).
 
 # %%
 ts_model = TempScaling(copy.deepcopy(cnn).eval())
@@ -478,6 +517,10 @@ plt.show()
 # ## Conformal prediction (RAPS)
 #
 # *Follows the Lightning UQ Box tutorial `earth_observation/raps.ipynb` (calibration set, RAPS on top of a trained network).*
+#
+# > **In short:** Predicts a set of classes instead of one class; a threshold chosen on a calibration set guarantees that the true class is in the set with probability at least $1-\alpha$, as long as the test data looks like the calibration data.
+# >
+# > **Read more:** [Angelopoulos & Bates (2021), A gentle introduction to conformal prediction](https://arxiv.org/abs/2107.07511); RAPS: [Angelopoulos et al. (2021)](https://arxiv.org/abs/2009.14193)
 #
 # As in the official [Earth observation tutorial](https://lightning-uq-box.readthedocs.io/en/latest/tutorials/earth_observation/raps.html)
 # (RESISC45 with a pretrained ResNet): conformal prediction gives a **set of classes** with a guarantee.

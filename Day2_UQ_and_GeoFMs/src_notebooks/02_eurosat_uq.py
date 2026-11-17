@@ -1,17 +1,31 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
+# **Part 1 · Uncertainty Quantification · notebook 2 of 3**
+#
 # # Notebook 2: Uncertainty for land cover classification (EuroSAT)
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/02_eurosat_uq.ipynb)
-#
-# **Session 1, part 2**
 #
 # What we do:
 #
 # 1. Look at the data
 # 2. Train a small CNN **without dropout**, then **with dropout** (rate 0.1), and watch the training curves
 # 3. How well does the softmax confidence match the accuracy? Reliability diagram, ECE
-# 4. Four ways to estimate uncertainty: **temperature scaling**, **Deep Ensembles**, **MC Dropout**
-#    and **feature-space density** (DDU)
+# 4. Calibrating the confidence after training (**temperature scaling**), and three ways to estimate
+#    uncertainty: **MC Dropout**, **Deep Ensembles** and **feature-space density** (DDU)
 # 5. Which images are uncertain, and why? Aleatoric vs. epistemic examples
 # 6. **Clouds**: a distribution shift the model has never seen, analysed in detail
 #    (realistic synthetic clouds and evaluations following the HAICON 2026 Trustworthy UQ workshop)
@@ -206,9 +220,21 @@ plt.show()
 # predictions still have a confidence close to 1.
 
 # %% [markdown]
-# ## 4. Four ways to estimate uncertainty
+# ## 4. Calibration and uncertainty estimation
 #
-# ### 4a. Temperature scaling (post-hoc)
+# Two different things:
+#
+# * **Calibration** (4a): the network keeps its prediction, only its confidence is rescaled so that it matches the
+#   accuracy on data like the validation set. Temperature scaling is such a **post-hoc calibration**: it does not
+#   estimate any new uncertainty, it adjusts the softmax of the one trained network.
+# * **Uncertainty estimation** (4b-4d): several predictions per image (MC Dropout, Deep Ensemble), which can be
+#   split into aleatoric and epistemic parts, or a distance score in feature space (DDU).
+#
+# ### 4a. Post-hoc calibration: temperature scaling
+#
+# > **In short:** One number $T$, fitted after training, rescales the logits. It calibrates the confidence on data like the validation set; it does not change the prediction and adds no uncertainty estimate of its own.
+# >
+# > **Read more:** [Guo et al. (2017), On calibration of modern neural networks](https://arxiv.org/abs/1706.04599)
 #
 # We divide the logits $z$ by one number $T$ before the softmax: $p = \text{softmax}(z / T)$.
 # $T > 1$ makes the predictions less confident. $T$ is fitted on the **validation set**
@@ -236,6 +262,10 @@ probs_ts = (predict_logits(model_a, x_test) / T).softmax(-1)
 # %% [markdown]
 # ### 4b. MC Dropout
 #
+# > **In short:** Dropout stays on at test time; the spread of $S$ predictions gives the epistemic part (see notebook 1).
+# >
+# > **Read more:** [Gal & Ghahramani (2016), Dropout as a Bayesian approximation](https://arxiv.org/abs/1506.02142)
+#
 # For the model with dropout we keep dropout on and predict each image $S = 20$ times.
 # This gives 20 slightly different probability vectors per image. From them:
 #
@@ -249,6 +279,10 @@ probs_mc = samples_mc.mean(0)
 
 # %% [markdown]
 # ### 4c. Deep Ensemble
+#
+# > **In short:** Several independently trained networks; their disagreement gives the epistemic part (see notebook 1).
+# >
+# > **Read more:** [Lakshminarayanan et al. (2017), Simple and scalable predictive uncertainty estimation using deep ensembles](https://arxiv.org/abs/1612.01474)
 #
 # We train 5 CNNs without dropout, each with a different seed (different initial weights and data order),
 # and average their predictions. The decomposition into aleatoric and epistemic works exactly as for
@@ -287,6 +321,10 @@ if RUN_ENSEMBLE:
 
 # %% [markdown]
 # ### 4d. Feature-space density (DDU)
+#
+# > **In short:** One normal network, one forward pass: the density of an image's features under per-class Gaussians fitted to the training features says whether something similar was seen before (epistemic).
+# >
+# > **Read more:** [Mukhoti et al. (2023), Deep deterministic uncertainty: a new simple baseline](https://arxiv.org/abs/2102.11582)
 #
 # A different idea (Mukhoti et al., 2023, "Deep Deterministic Uncertainty"): look at the **features** that
 # the CNN computes before its head (a 64-dimensional vector per image).
@@ -700,16 +738,3 @@ plt.show()
 for name, ale, epi in rows:
     share = [e / (a + e) for a, e in zip(ale, epi)]
     print(f"{name:22s} epistemic share: " + "  ".join(f"{c:.2f}: {s:.0%}" for c, s in zip(levels, share)))
-
-# %% [markdown]
-# Compare the two models: which one is more accurate under clouds, and how does the balance between
-# aleatoric and epistemic uncertainty change? Whether uncertainty is aleatoric or epistemic is not a property
-# of the image alone: **it depends on what the model has seen during training**.
-#
-# ## Exercises
-#
-# 1. Fit the temperature on **cloudy** validation images instead. Does calibration on clean data still hold under clouds?
-# 2. Use only 3 ensemble members (seeds `[0, 1, 2]`). What changes?
-# 3. Set `CLOUD_FRAC = 0.2`. How do accuracy and the aleatoric/epistemic balance under clouds change?
-# 4. Use DDU with the features of the cloud-aware model (`model_c`). Does it still detect clouds? Why (not)?
-# 5. Replace the clouds by another shift, e.g. darker images (`x_test * 0.5`) or noise. Which method notices it?

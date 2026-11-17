@@ -1,12 +1,28 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
-# # Notebook 7: AlphaEarth Foundations, ready-made embeddings for every 10 m pixel
+# **Part 2 · Geo Foundation Models · notebook 3 of 3**
 #
-# [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/07_alphaearth_embeddings.ipynb)
+# # Notebook 6: AlphaEarth Foundations, ready-made embeddings for every 10 m pixel
 #
-# **Session 2, part 4.** Needs internet access the first time: the index file and a few internal
+# [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/06_alphaearth_embeddings.ipynb)
+#
+# Needs internet access the first time: the index file and a few internal
 # blocks of the data files, up to a few hundred MB depending on the connection. Afterwards everything is cached in `data/alphaearth/`.
 #
-# In notebooks 4-6 *we* computed embeddings with TerraMind. Google DeepMind's
+# In notebooks 4 and 5 *we* computed embeddings with TerraMind. Google DeepMind's
 # [AlphaEarth Foundations](https://arxiv.org/abs/2507.22291) (AEF) goes one step further: the embeddings are
 # **pre-computed for the whole land surface, every year since 2017, at 10 m resolution**.
 #
@@ -390,7 +406,7 @@ plt.show()
 # %% [markdown]
 # ## 8. How sure is the classifier? An ensemble of linear heads
 #
-# Back to Session 1. A cheap way to get uncertainty on top of a foundation model: train several small heads,
+# Back to Part 1 (uncertainty quantification). A cheap way to get uncertainty on top of a foundation model: train several small heads,
 # each on a **different random draw** of 10 labelled pixels per class, and look at how much they disagree.
 #
 # * **total uncertainty**: entropy of the averaged probabilities

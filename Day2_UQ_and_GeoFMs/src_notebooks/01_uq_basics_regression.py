@@ -1,9 +1,23 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
+# **Part 1 · Uncertainty Quantification · notebook 1 of 3**
+#
 # # Notebook 1: Uncertainty quantification in regression
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/01_uq_basics_regression.ipynb)
-#
-# **Session 1, part 1**
 #
 # This notebook follows the regression notebook of the HAICON 2026 workshop
 # ["Uncertainty Quantification for Neural Networks"](https://github.com/ChrisKo94/HAICON_2026_Trustworthy_UQ_Workshop)
@@ -242,6 +256,10 @@ plt.show()
 #
 # *From the HAICON notebook `01_regression_uq.ipynb`, section 2.2.*
 #
+# > **In short:** The network predicts a mean and a variance and is trained with the Gaussian negative log-likelihood. It captures the noise in the data (aleatoric), but one network with one set of weights cannot know what it has not seen.
+# >
+# > **Read more:** [Kendall & Gal (2017), What uncertainties do we need in Bayesian deep learning for computer vision?](https://arxiv.org/abs/1703.04977)
+#
 # Instead of a single number we predict a **Gaussian distribution**:
 #
 # $$f_\theta(x) \rightarrow \bigl(\mu_\theta(x),\; \log\sigma^2_\theta(x)\bigr)$$
@@ -318,6 +336,10 @@ plt.show()
 #
 # *From the HAICON notebook `01_regression_uq.ipynb`, section 2.3.*
 #
+# > **In short:** The network predicts quantiles directly (pinball loss), without assuming a Gaussian. Like the Gaussian NLL it only covers aleatoric uncertainty: nothing widens the intervals outside the data.
+# >
+# > **Read more:** [Koenker & Hallock (2001), Quantile regression](https://doi.org/10.1257/jep.15.4.143); for neural networks: [Tagasovska & Lopez-Paz (2019)](https://arxiv.org/abs/1811.00908)
+#
 # Instead of a Gaussian, we predict **quantiles** directly. The $q$-quantile is the value below which
 # a fraction $q$ of the data lies. The loss for quantile $q \in (0, 1)$ is the **pinball loss**
 # (with $u = y - \hat y_q$):
@@ -389,6 +411,10 @@ plt.show()
 #
 # *From the HAICON notebook `01_regression_uq.ipynb`, section 2.4 (plots extended to aleatoric / epistemic / total).*
 #
+# > **In short:** Dropout stays on at test time; each forward pass is a slightly different network, and their disagreement is the epistemic part. No change to training, but $T$ forward passes per input, and the result depends on dropout rate and position.
+# >
+# > **Read more:** [Gal & Ghahramani (2016), Dropout as a Bayesian approximation](https://arxiv.org/abs/1506.02142)
+#
 # **Dropout** randomly sets activations to zero during training.
 # For MC Dropout we keep dropout **switched on at test time** and run $T$ forward passes.
 # Every pass uses a slightly different network:
@@ -435,6 +461,10 @@ plot_decomposition(mu_mc, sig_al, sig_ep, "MC Dropout: total = aleatoric + epist
 # ## 7. Deep Ensembles
 #
 # *From the HAICON notebook `01_regression_uq.ipynb`, section 2.5.*
+#
+# > **In short:** Several networks trained from different random initialisations; their average is the prediction, their disagreement the epistemic part. Costs $M$ times training and prediction ($M = 5$ is common).
+# >
+# > **Read more:** [Lakshminarayanan et al. (2017), Simple and scalable predictive uncertainty estimation using deep ensembles](https://arxiv.org/abs/1612.01474)
 #
 # We train $M = 5$ networks from **different random initialisations**. The prediction is a mixture:
 #
@@ -492,6 +522,10 @@ plot_decomposition(mu_ens, sal_ens, sep_ens, "Deep Ensemble: total = aleatoric +
 # ## 8. SNGP: Spectral-normalized Neural Gaussian Process
 #
 # *From the HAICON notebook `01_regression_uq.ipynb`, section 2.6.*
+#
+# > **In short:** One network, one forward pass: spectral normalisation keeps distances in feature space, and a Gaussian-process output layer turns the distance to the training data into uncertainty.
+# >
+# > **Read more:** [Liu et al. (2020), Simple and principled uncertainty estimation with deterministic deep learning via distance awareness](https://arxiv.org/abs/2006.10108)
 #
 # Standard networks can be confidently wrong **far from the training data**.
 # SNGP (Liu et al., 2020) makes the uncertainty depend on the **distance to the training data**:
@@ -656,18 +690,6 @@ print(f"{'method':22s} {'coverage inside':>16s} {'coverage outside':>17s}   (tar
 for name, (lo, hi) in intervals.items():
     print(f"{name:22s} {coverage(lo, hi, x_in):16.1%} {coverage(lo, hi, x_out):17.1%}")
 
-# %% [markdown]
-# Questions to look at:
-# * How close is each method to 90% inside the training range?
-# * Methods without an epistemic part (Gaussian NLL, quantile regression) have no mechanism to widen their
-#   intervals outside the training range. What does the table show for them, and for the other methods?
-# * The numbers depend on seeds and settings (see the exercises).
-#
-# ### Training curves
-#
-# The loss per epoch of every model trained in this notebook. The losses differ between methods
-# (MSE, Gaussian NLL, pinball loss), so each method has its own panel.
-
 # %%
 groups = {}
 for name, hist in TRAINING_CURVES.items():
@@ -681,11 +703,3 @@ for ax, (name, hists) in zip(np.atleast_1d(axes), groups.items()):
 np.atleast_1d(axes)[0].set_ylabel("training loss")
 plt.tight_layout()
 plt.show()
-
-# %% [markdown]
-# ## Exercises
-#
-# 1. Change the dropout rate of the MC Dropout model to 0.1 and 0.5. What happens outside the training range?
-# 2. Use only 2 ensemble members. How does the epistemic part change?
-# 3. Train the Gaussian NLL model with 50 instead of 250 points. Which part of the uncertainty changes?
-# 4. Change `SEED`. Which methods change the most?

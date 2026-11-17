@@ -1,9 +1,23 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
+# **Part 2 · Geo Foundation Models · notebook 2 of 3**
+#
 # # Notebook 5: Few labels? Linear probing on foundation model embeddings
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/05_few_shot_linear_probe.ipynb)
-#
-# **Session 2, part 2**
 #
 # Foundation models are often used when only few labels are available. Here we try this on EuroSAT
 # with only $k$ labelled images per class ($k$ = 1, 5, 10, 20, 50).

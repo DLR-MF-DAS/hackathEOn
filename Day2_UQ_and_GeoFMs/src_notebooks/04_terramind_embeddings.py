@@ -1,9 +1,23 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
+# **Part 2 · Geo Foundation Models · notebook 1 of 3**
+#
 # # Notebook 4: Embeddings from a geo foundation model (TerraMind)
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/04_terramind_embeddings.ipynb)
-#
-# **Session 2, part 1**
 #
 # [TerraMind](https://huggingface.co/ibm-esa-geospatial/TerraMind-1.0-tiny) is a multimodal
 # foundation model for Earth observation by IBM and ESA. It was pre-trained on millions of
@@ -15,7 +29,7 @@
 # 1. Load TerraMind through [TerraTorch](https://github.com/terrastackai/terratorch)
 # 2. Turn every EuroSAT image into one vector, the **embedding**
 # 3. Look at the embedding space (t-SNE) and use it for similarity search
-# 4. Save the embeddings for notebooks 5 and 6 (in `outputs/04_terramind_embeddings/`)
+# 4. Save the embeddings for notebook 5 (in `outputs/04_terramind_embeddings/`)
 #
 # Runs on a CPU; a GPU is faster.
 #
@@ -67,7 +81,7 @@ print("device:", DEVICE)
 # | `"ms"` (default, ~2 GB download) | `data/eurosat_ms.npz` | `"S2L1C"` (13 bands, Level-1C) | reflectance × 10,000 |
 # | `"rgb"` (~90 MB download) | `data/eurosat_rgb.npz` | `"RGB"` (Sentinel-2 RGB) | 0-255 |
 #
-# The data is downloaded the first time. Notebooks 5 and 6 use the variant of the saved embeddings.
+# The data is downloaded the first time. Notebook 5 uses the variant of the saved embeddings.
 
 # %%
 data = load_eurosat(DATA_VARIANT)   # downloads the data the first time
@@ -112,26 +126,18 @@ print("last layer output:", tuple(tokens[-1].shape), " = (images, tokens, featur
 # ## 3. Compute the embeddings
 #
 # *Normalisation and last-layer embedding as in the TerraTorch example above.*
-#
-# We also compute embeddings of **cloudy** test images, which we need in notebook 6.
 
 # %%
 t0 = time.time()
 emb = {s: terramind_embed(model, x[s], DATA_VARIANT, desc=f"embedding {s}") for s in ["train", "val", "test"]}
-emb_cloudy = {}
-for c in [0.3, 0.6]:
-    x_cloudy = add_clouds(x["test"], coverage=c, cloud_value=CLOUD[DATA_VARIANT], seed=1)  # raw units
-    emb_cloudy[c] = terramind_embed(model, x_cloudy, DATA_VARIANT, desc=f"embedding test, {c:.0%} clouds")
 print(f"done in {time.time() - t0:.0f} s")
 
-# saved for notebooks 5 and 6
+# saved for notebook 5
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 np.savez(
     EMBEDDINGS_FILE,
     **{f"emb_{s}": emb[s].numpy() for s in emb},
     **{f"y_{s}": y[s].numpy() for s in y},
-    emb_test_cloud30=emb_cloudy[0.3].numpy(),
-    emb_test_cloud60=emb_cloudy[0.6].numpy(),
     variant=DATA_VARIANT,
 )
 print(f"saved {EMBEDDINGS_FILE}")

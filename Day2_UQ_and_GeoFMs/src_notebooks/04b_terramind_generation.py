@@ -1,9 +1,25 @@
+# ---
+# jupyter:
+#   jupytext:
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
+#   kernelspec:
+#     display_name: Python 3 (ipykernel)
+#     language: python
+#     name: python3
+# ---
+
 # %% [markdown]
+# **Part 2 · Geo Foundation Models · optional notebook (4b)**
+#
 # # Notebook 4b (optional): Cross-modal generation with TerraMind
 #
 # [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/04b_terramind_generation.ipynb)
 #
-# **Session 2, optional (a GPU is recommended)**
+# *A GPU is recommended.*
 #
 # TerraMind is not only an encoder: it can **generate one modality from another** ("any-to-any").
 # From a Sentinel-2 image it produces, for example, a Sentinel-1 radar image, a digital elevation model (DEM),

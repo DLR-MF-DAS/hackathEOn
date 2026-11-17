@@ -149,7 +149,7 @@ def load_npz(path):
 #   "rgb": data/eurosat_rgb.npz  5000 images, red / green / blue, values 0-255 (~90 MB download)
 DATA_FILES = {"ms": "data/eurosat_ms.npz", "rgb": "data/eurosat_rgb.npz"}
 
-# Notebook 4 writes the TerraMind embeddings here; notebooks 5 and 6 read them.
+# Notebook 4 writes the TerraMind embeddings here; notebook 5 reads them.
 EMBEDDINGS_FILE = "outputs/04_terramind_embeddings/embeddings_terramind_tiny.npz"
 
 # Sentinel-2 bands in the order stored in eurosat_ms.npz (= TerraMind's S2L1C order)
@@ -601,8 +601,7 @@ def terramind_embed(model, x, variant="ms", batch_size=32, size=224, desc="Terra
 
 
 def compute_terramind_embeddings(variant="ms", path=EMBEDDINGS_FILE):
-    """What notebook 4 does: TerraMind-tiny embeddings of the EuroSAT splits and of cloudy test images
-    (30 % and 60 % cloud cover), saved to `path`."""
+    """What notebook 4 does: TerraMind-tiny embeddings of the EuroSAT splits, saved to `path`."""
     import os
     data = load_eurosat(variant)
     model = load_terramind(variant, "terramind_v1_tiny", pretrained=True)
@@ -610,10 +609,6 @@ def compute_terramind_embeddings(variant="ms", path=EMBEDDINGS_FILE):
     for s in ["train", "val", "test"]:
         out[f"emb_{s}"] = terramind_embed(model, data[f"x_{s}"], variant, desc=f"embedding {s}").numpy()
         out[f"y_{s}"] = data[f"y_{s}"].numpy()
-    for c in [0.3, 0.6]:
-        x_cloudy = add_clouds(data["x_test"], coverage=c, cloud_value=CLOUD[variant], seed=1)
-        out[f"emb_test_cloud{round(c * 100)}"] = terramind_embed(
-            model, x_cloudy, variant, desc=f"embedding test, {c:.0%} clouds").numpy()
     out["variant"] = np.array(variant)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     np.savez(path, **out)

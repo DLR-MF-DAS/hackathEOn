@@ -8,7 +8,7 @@ laptop or in Google Colab.
 
 1. [Setup](#1-setup): local installation with or without a GPU, or Google Colab
 2. [Part 1: Uncertainty quantification](#2-part-1-uncertainty-quantification) (notebooks 01-03)
-3. [Part 2: Geo foundation models](#3-part-2-geo-foundation-models) (notebooks 04-07)
+3. [Part 2: Geo foundation models](#3-part-2-geo-foundation-models) (notebooks 04-06)
 4. [Data](#4-data)
 5. [Sources and further reading](#5-sources-and-further-reading)
 
@@ -71,11 +71,10 @@ much faster.
 | [04_terramind_embeddings](04_terramind_embeddings.ipynb) | Embeddings of EuroSAT images with [TerraMind](https://huggingface.co/ibm-esa-geospatial/TerraMind-1.0-tiny) | TerraTorch: [`embedding_generation_manual_backbone_registry`](https://github.com/IBM/terratorch/blob/main/examples/embeddings/embedding_generation_manual_backbone_registry.ipynb) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/04_terramind_embeddings.ipynb) |
 | [04b_terramind_generation](04b_terramind_generation.ipynb) (optional) | Generating other modalities (Sentinel-1, DEM, land cover, NDVI) from Sentinel-2 with TerraMind | TerraMind: [`terramind_generation`](https://github.com/IBM/terramind/blob/main/notebooks/terramind_generation.ipynb), [`terramind_any_to_any_generation`](https://github.com/IBM/terramind/blob/main/notebooks/terramind_any_to_any_generation.ipynb) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/04b_terramind_generation.ipynb) |
 | [05_few_shot_linear_probe](05_few_shot_linear_probe.ipynb) | Classification with few labels on the embeddings | TerraTorch: [`classification_eurosat`](https://github.com/IBM/terratorch/blob/main/examples/classification/classification_eurosat.ipynb) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/05_few_shot_linear_probe.ipynb) |
-| [06_uq_on_embeddings](06_uq_on_embeddings.ipynb) | Uncertainty of classifiers on the embeddings | new | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/06_uq_on_embeddings.ipynb) |
-| [07_alphaearth_embeddings](07_alphaearth_embeddings.ipynb) | Pre-computed [AlphaEarth Foundations](https://arxiv.org/abs/2507.22291) embeddings of a small region (needs internet) | Earth Engine [Satellite Embedding tutorials](https://developers.google.com/earth-engine/tutorials/community/satellite-embedding-01-introduction); [aef-loader](https://github.com/jakenotjay/aef-loader) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/07_alphaearth_embeddings.ipynb) |
+| [06_alphaearth_embeddings](06_alphaearth_embeddings.ipynb) | Pre-computed [AlphaEarth Foundations](https://arxiv.org/abs/2507.22291) embeddings of a small region (needs internet) | Earth Engine [Satellite Embedding tutorials](https://developers.google.com/earth-engine/tutorials/community/satellite-embedding-01-introduction); [aef-loader](https://github.com/jakenotjay/aef-loader) | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DLR-MF-DAS/hackathEOn/blob/main/Day2_UQ_and_GeoFMs/06_alphaearth_embeddings.ipynb) |
 
-Notebooks 05 and 06 use the embeddings written by notebook 04 (`outputs/04_terramind_embeddings/`); if they are
-missing, they compute them first.
+Notebook 05 uses the embeddings written by notebook 04 (`outputs/04_terramind_embeddings/`); if they are
+missing, it computes them first.
 
 All sources are openly licensed (MIT, Apache-2.0, CC-BY 4.0). Each notebook names them at the top ("Based on") and
 in the cells taken over.
@@ -83,7 +82,7 @@ in the cells taken over.
 ## 4. Data
 
 The notebooks use a small, balanced subset of [EuroSAT](https://github.com/phelber/EuroSAT): Sentinel-2 patches of
-64 × 64 pixels, 10 land cover classes. Choose the bands at the top of notebooks 02, 03 and 04 (05 and 06 follow
+64 × 64 pixels, 10 land cover classes. Choose the bands at the top of notebooks 02, 03 and 04 (05 follows
 notebook 04; 04b always uses 13 bands):
 
 ```python
@@ -103,7 +102,7 @@ uv run python scripts/download_data.py                  # 13 bands (default)
 uv run python scripts/download_data.py --variant rgb    # RGB only
 ```
 
-Notebook 01 needs no data, 02b downloads MNIST (~12 MB) and 07 reads the AlphaEarth embeddings of a small region
+Notebook 01 needs no data, 02b downloads MNIST (~12 MB) and 06 reads the AlphaEarth embeddings of a small region
 over the internet.
 
 ## 5. Sources and further reading
@@ -119,8 +118,8 @@ and papers. All of them are good starting points to go further.
 | [Lightning UQ Box tutorials](https://github.com/lightning-uq-box/lightning-uq-box/tree/main/docs/tutorials) | Bayes by Backprop, Deep Ensembles, Laplace, SWAG, conformal prediction (RAPS) | 03 |
 | [TerraTorch examples](https://github.com/IBM/terratorch/tree/main/examples) | building TerraMind, embedding extraction, EuroSAT classification and fine-tuning | 04, 05 |
 | [TerraMind notebooks](https://github.com/IBM/terramind/tree/main/notebooks) | cross-modal generation, example tiles, plotting functions | 04b |
-| [Earth Engine Satellite Embedding tutorials](https://developers.google.com/earth-engine/tutorials/community/satellite-embedding-01-introduction) | clustering, similarity search, classification with AlphaEarth embeddings | 07 |
-| [AlphaEarth data on GCS / Source Cooperative](https://developers.google.com/earth-engine/guides/aef_on_gcs_readme) and [aef-loader](https://github.com/jakenotjay/aef-loader) | file layout, index file, reading small windows without Earth Engine | 07 |
+| [Earth Engine Satellite Embedding tutorials](https://developers.google.com/earth-engine/tutorials/community/satellite-embedding-01-introduction) | clustering, similarity search, classification with AlphaEarth embeddings | 06 |
+| [AlphaEarth data on GCS / Source Cooperative](https://developers.google.com/earth-engine/guides/aef_on_gcs_readme) and [aef-loader](https://github.com/jakenotjay/aef-loader) | file layout, index file, reading small windows without Earth Engine | 06 |
 | [SatelliteCloudGenerator](https://github.com/strath-ai/SatelliteCloudGenerator) | realistic synthetic clouds | 02, 03, 04 |
 
 ### Libraries
